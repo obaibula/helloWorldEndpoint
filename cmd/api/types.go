@@ -1,15 +1,26 @@
 package main
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type date time.Time
 
-func (d *date) UnmarshalJSON(bytes []byte) error {
-	dateStr := string(bytes[1 : len(bytes)-1])
-	parsedDate, err := time.Parse(time.DateOnly, dateStr)
-	if err != nil {
-		return err
+func (d *date) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
 	}
+	if len(data) < 2 || data[0] != '"' || data[len(data)-1] != '"' {
+		return errors.New("date.UnmarshalJSON: input is not a JSON string")
+	}
+	data = data[len(`"`) : len(data)-len(`"`)]
+	var err error
+	parsedDate, err := time.Parse(time.DateOnly, string(data))
 	*d = date(parsedDate)
-	return nil
+	return err
+}
+
+func (d *date) toTime() time.Time {
+	return time.Time(*d)
 }

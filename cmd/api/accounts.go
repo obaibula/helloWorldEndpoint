@@ -3,7 +3,6 @@ package main
 import (
 	"helloWorldEndpoint/internal/data"
 	"net/http"
-	"time"
 )
 
 func (app *application) createAccountHandler(w http.ResponseWriter, r *http.Request) {
@@ -13,6 +12,7 @@ func (app *application) createAccountHandler(w http.ResponseWriter, r *http.Requ
 		Email     string `json:"email"`
 		Birthday  date   `json:"birthday"`
 	}
+
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -24,7 +24,7 @@ func (app *application) createAccountHandler(w http.ResponseWriter, r *http.Requ
 		FirstName: input.FirstName,
 		LastName:  input.LastName,
 		Email:     input.Email,
-		Birthday:  time.Time(input.Birthday),
+		Birthday:  input.Birthday.toTime(),
 	}
 
 	err = app.models.Accounts.Insert(account)
