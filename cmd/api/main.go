@@ -1,10 +1,12 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	_ "github.com/lib/pq"
 	"log/slog"
 	"os"
+	"time"
 )
 
 type config struct {
@@ -26,15 +28,43 @@ func main() {
 	flag.Parse()
 
 	logHandler := slog.NewJSONHandler(os.Stdout, nil)
+	logger := slog.New(logHandler)
+
+	db, err := openDB(cfg)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+	defer db.Close()
+	logger.Info("database connection pool established")
 
 	app := application{
 		cfg:    &cfg,
-		logger: slog.New(logHandler),
+		logger: logger,
 	}
 
-	err := app.listenAndServe()
+	err = app.listenAndServe()
 	if err != nil {
 		app.logger.Error(err.Error())
 		os.Exit(1)
 	}
+}
+
+func openDB(cfg config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", cfg.db.dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxIdleTime(15 * time.Minute)
+
+	err = db.Ping()
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return db, nil
 }
