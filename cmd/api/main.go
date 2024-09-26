@@ -3,7 +3,10 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"helloWorldEndpoint/internal/data"
+	"log"
 	"log/slog"
 	"os"
 	"time"
@@ -19,11 +22,16 @@ type config struct {
 type application struct {
 	cfg    *config
 	logger *slog.Logger
+	models *data.Models
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	var cfg config
-	flag.StringVar(&cfg.db.dsn, "dsn", "", "Database DSN")
+	flag.StringVar(&cfg.db.dsn, "dsn", os.Getenv("DB_DSN"), "Database DSN")
 	flag.IntVar(&cfg.port, "port", 8080, "Port for the application")
 	flag.Parse()
 
@@ -41,6 +49,7 @@ func main() {
 	app := application{
 		cfg:    &cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	err = app.listenAndServe()
